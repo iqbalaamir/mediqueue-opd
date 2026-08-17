@@ -50,9 +50,11 @@ export function initFlashToasts() {
     const body = document.body;
     const success = body.dataset.flashSuccess;
     const error = body.dataset.flashError;
+    const info = body.dataset.flashInfo;
 
     if (success) showToast(success, 'success');
     if (error) showToast(error, 'error');
+    if (info) showToast(info, 'info');
 }
 
 export default { showToast, initFlashToasts };

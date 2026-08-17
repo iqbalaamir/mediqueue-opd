@@ -28,7 +28,7 @@ npm install
 cp .env.example .env
 php artisan key:generate
 
-# Configure MySQL in .env
+# Configure MySQL in .env (default for local dev)
 # DB_CONNECTION=mysql
 # DB_HOST=127.0.0.1
 # DB_PORT=3306
@@ -47,6 +47,14 @@ composer run dev
 ```
 
 Visit `http://127.0.0.1:8000`
+
+## Share / promote (WhatsApp)
+
+- **Promo page:** `/promo` — shareable demo + WhatsApp share button
+- **Templates:** [docs/WHATSAPP_PROMOTION.md](docs/WHATSAPP_PROMOTION.md)
+- **Deploy guide:** [docs/DEPLOY.md](docs/DEPLOY.md)
+
+Set `APP_URL` in `.env` to your public domain before sharing links.
 
 ## Admin Access (after Module 9 seed)
 

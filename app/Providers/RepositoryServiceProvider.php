@@ -2,23 +2,28 @@
 
 namespace App\Providers;
 
+use App\Repositories\Contracts\AppointmentRepositoryInterface;
+use App\Repositories\Contracts\CityRepositoryInterface;
+use App\Repositories\Contracts\DoctorRepositoryInterface;
+use App\Repositories\Contracts\DoctorSlotRepositoryInterface;
+use App\Repositories\Contracts\HospitalRepositoryInterface;
+use App\Repositories\Eloquent\AppointmentRepository;
+use App\Repositories\Eloquent\CityRepository;
+use App\Repositories\Eloquent\DoctorRepository;
+use App\Repositories\Eloquent\DoctorSlotRepository;
+use App\Repositories\Eloquent\HospitalRepository;
 use Illuminate\Support\ServiceProvider;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
-    /**
-     * Repository interface → Eloquent implementation bindings.
-     * Add entries as repositories are implemented in Module 2+.
-     *
-     * @var array<class-string, class-string>
-     */
     protected array $repositories = [
-        // Example: \App\Repositories\Contracts\CityRepositoryInterface::class => \App\Repositories\Eloquent\CityRepository::class,
+        CityRepositoryInterface::class => CityRepository::class,
+        HospitalRepositoryInterface::class => HospitalRepository::class,
+        DoctorRepositoryInterface::class => DoctorRepository::class,
+        DoctorSlotRepositoryInterface::class => DoctorSlotRepository::class,
+        AppointmentRepositoryInterface::class => AppointmentRepository::class,
     ];
 
-    /**
-     * Register repository bindings.
-     */
     public function register(): void
     {
         foreach ($this->repositories as $abstract => $concrete) {
@@ -26,9 +31,6 @@ class RepositoryServiceProvider extends ServiceProvider
         }
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         //

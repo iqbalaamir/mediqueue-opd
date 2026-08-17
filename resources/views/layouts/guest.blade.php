@@ -12,9 +12,13 @@
     @stack('head')
 </head>
 <body
-    class="min-h-screen bg-surface"
+    @class([
+        'flex flex-col bg-surface',
+        trim($__env->yieldContent('body-class')) ?: 'min-h-screen',
+    ])
     data-flash-success="{{ session('success') }}"
     data-flash-error="{{ session('error') }}"
+    data-flash-info="{{ session('info') }}"
 >
     <x-ui.toast-container />
     <x-ui.loading-overlay />
@@ -35,7 +39,10 @@
         </x-slot:actions>
     </x-ui.sticky-header>
 
-    <main class="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+    <main @class([
+        'mx-auto w-full max-w-6xl px-4 sm:px-6',
+        trim($__env->yieldContent('main-class')) ?: 'flex-1 py-6',
+    ])>
         @isset($breadcrumbs)
             <x-ui.breadcrumbs :items="$breadcrumbs" class="mb-6" />
         @endisset
@@ -43,15 +50,7 @@
         @yield('content')
     </main>
 
-    <footer class="border-t border-brand-100 bg-white/70 py-8">
-        <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-slate-500 sm:flex-row sm:px-6">
-            <p>&copy; {{ date('Y') }} {{ config('hospital.name') }}. All rights reserved.</p>
-            <div class="flex gap-4">
-                <a href="{{ route('book.index', absolute: false) }}" class="hover:text-brand-700">Book</a>
-                <a href="{{ route('verify.index', absolute: false) }}" class="hover:text-brand-700">Verify Appointment</a>
-            </div>
-        </div>
-    </footer>
+    <x-ui.footer :variant="trim($__env->yieldContent('footer-variant')) ?: 'full'" />
 
     @stack('scripts')
 </body>
