@@ -4,12 +4,14 @@ namespace App\Services\Booking;
 
 use App\Domain\Enums\AppointmentStatus;
 use App\Domain\Enums\HospitalPaymentMode;
+use App\Domain\Enums\NotificationType;
 use App\Domain\Enums\PaymentStatus;
 use App\Exceptions\BookingException;
 use App\Models\Appointment;
 use App\Models\DoctorSlot;
 use App\Repositories\Contracts\AppointmentRepositoryInterface;
 use App\Repositories\Contracts\DoctorSlotRepositoryInterface;
+use App\Services\Notification\NotificationManager;
 use App\Services\Payment\PaymentConfigResolver;
 use App\Services\Payment\PaymentService;
 use App\Services\Queue\QueueService;
@@ -103,7 +105,10 @@ class BookingService
                 $this->paymentService->createPendingPayment($appointment);
             } else {
                 $this->slots->incrementBookedCount($slot);
-                $this->queueService->createForAppointment($appointment->fresh(['doctor']));
+                $confirmed = $appointment->fresh(['doctor']);
+                $this->queueService->createForAppointment($confirmed);
+                $confirmed = $confirmed->fresh(['doctor', 'hospital', 'queueEntry']);
+                app(NotificationManager::class)->dispatch($confirmed, NotificationType::AppointmentConfirmed);
             }
 
             return $appointment->fresh(['doctor.hospital', 'doctorSlot', 'payments', 'queueEntry']);
@@ -124,7 +129,31 @@ class BookingService
 
             $this->queueService->createForAppointment($appointment->fresh(['doctor']));
 
-            return $appointment->fresh(['doctor', 'hospital', 'queueEntry', 'payments']);
+            $confirmed = $appointment->fresh(['doctor', 'hospital', 'queueEntry', 'payments']);
+            app(NotificationManager::class)->dispatch($confirmed, NotificationType::AppointmentConfirmed);
+
+            return $confirmed;
+        });
+    }
+
+    public function cancelByAdmin(Appointment $appointment): void
+    {
+        DB::transaction(function () use ($appointment) {
+            if ($appointment->isCancelled()) {
+                return;
+            }
+
+            $slot = $appointment->doctorSlot;
+            $shouldRelease = $slot && $appointment->status !== AppointmentStatus::Completed;
+
+            $this->appointments->update($appointment, [
+                'status' => AppointmentStatus::Cancelled,
+                'cancelled_at' => now(),
+            ]);
+
+            if ($shouldRelease) {
+                $this->slots->decrementBookedCount($slot);
+            }
         });
     }
 

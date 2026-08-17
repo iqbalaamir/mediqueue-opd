@@ -1,11 +1,25 @@
 <?php
 
+use App\Http\Controllers\Admin\AppointmentController as AdminAppointmentController;
+use App\Http\Controllers\Admin\AuthController;
+use App\Http\Controllers\Admin\CityController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DepartmentController;
+use App\Http\Controllers\Admin\DoctorController;
+use App\Http\Controllers\Admin\HospitalController;
+use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\QueueDeskController;
+use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\SlotController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Patient\AppointmentController;
 use App\Http\Controllers\Patient\BookingController;
 use App\Http\Controllers\Patient\BookingFeeController;
 use App\Http\Controllers\Patient\BookingOtpController;
 use App\Http\Controllers\Patient\PaymentController;
-use App\Http\Controllers\HomeController;
+use App\Http\Controllers\Patient\QueueController;
+use App\Http\Controllers\Patient\VerifyController;
 use App\Http\Controllers\PromoController;
 use Illuminate\Support\Facades\Route;
 
@@ -49,30 +63,75 @@ Route::prefix('book')->name('book.')->group(function () {
 Route::get('/appointments/{appointment}', [AppointmentController::class, 'show'])
     ->name('appointments.show');
 
-Route::view('/verify', 'components.placeholder', [
-    'title' => 'Verify Appointment',
-    'module' => '3',
-    'message' => 'Lookup by appointment number or mobile number.',
-])->name('verify.index');
+Route::get('/appointments/{appointment}/queue', [QueueController::class, 'show'])
+    ->name('queue.show');
+
+Route::get('/appointments/{appointment}/queue/snapshot', [QueueController::class, 'snapshot'])
+    ->name('queue.snapshot');
+
+Route::get('/verify', [VerifyController::class, 'index'])->name('verify.index');
 
 Route::prefix('admin')->name('admin.')->group(function () {
-    Route::view('/login', 'admin.login-placeholder')->name('login');
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AuthController::class, 'login'])->name('login.store');
 
-    Route::post('/logout', fn () => redirect()->to(route('admin.login', absolute: false)))->name('logout');
+    Route::middleware('admin')->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    $adminPlaceholder = fn (string $title, string $module, string $message = '') => view('admin.placeholder', compact('title', 'module', 'message') + [
-        'message' => $message ?: "Admin {$title} will be implemented in Module {$module}.",
-    ]);
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    Route::get('/dashboard', fn () => $adminPlaceholder('Dashboard', '8'))->name('dashboard');
-    Route::get('/cities', fn () => $adminPlaceholder('Cities', '6'))->name('cities.index');
-    Route::get('/hospitals', fn () => $adminPlaceholder('Hospitals', '6'))->name('hospitals.index');
-    Route::get('/departments', fn () => $adminPlaceholder('Departments', '6'))->name('departments.index');
-    Route::get('/doctors', fn () => $adminPlaceholder('Doctors', '6'))->name('doctors.index');
-    Route::get('/slots', fn () => $adminPlaceholder('Slots', '7'))->name('slots.index');
-    Route::get('/appointments', fn () => $adminPlaceholder('Appointments', '7'))->name('appointments.index');
-    Route::get('/queues', fn () => $adminPlaceholder('Queue Desk', '4'))->name('queues.index');
-    Route::get('/notifications', fn () => $adminPlaceholder('Notifications', '5'))->name('notifications.index');
-    Route::get('/reports', fn () => $adminPlaceholder('Reports', '8'))->name('reports.index');
-    Route::get('/settings', fn () => $adminPlaceholder('Settings', '8'))->name('settings.index');
+        Route::resource('cities', CityController::class)->except(['show']);
+        Route::resource('hospitals', HospitalController::class)->except(['show']);
+        Route::resource('departments', DepartmentController::class)->except(['show']);
+        Route::resource('doctors', DoctorController::class)->except(['show']);
+        Route::resource('slots', SlotController::class)->except(['show']);
+        Route::post('/slots/bulk', [SlotController::class, 'bulk'])
+            ->middleware('throttle:admin_write')
+            ->name('slots.bulk');
+
+        Route::get('/appointments', [AdminAppointmentController::class, 'index'])->name('appointments.index');
+        Route::get('/appointments/{appointment}', [AdminAppointmentController::class, 'show'])->name('appointments.show');
+        Route::patch('/appointments/{appointment}/status', [AdminAppointmentController::class, 'updateStatus'])
+            ->middleware('throttle:admin_write')
+            ->name('appointments.status');
+
+        Route::get('/queues', [QueueDeskController::class, 'index'])->name('queues.index');
+        Route::post('/queues/call-next', [QueueDeskController::class, 'callNext'])
+            ->middleware('throttle:admin_write')
+            ->name('queues.call-next');
+        Route::post('/queues/{queueEntry}/serve', [QueueDeskController::class, 'serve'])
+            ->middleware('throttle:admin_write')
+            ->name('queues.serve');
+        Route::post('/queues/{queueEntry}/complete', [QueueDeskController::class, 'complete'])
+            ->middleware('throttle:admin_write')
+            ->name('queues.complete');
+        Route::post('/queues/{queueEntry}/skip', [QueueDeskController::class, 'skip'])
+            ->middleware('throttle:admin_write')
+            ->name('queues.skip');
+        Route::post('/queues/{queueEntry}/recall', [QueueDeskController::class, 'recall'])
+            ->middleware('throttle:admin_write')
+            ->name('queues.recall');
+        Route::post('/queues/doctor-delay', [QueueDeskController::class, 'doctorDelay'])
+            ->middleware('throttle:admin_write')
+            ->name('queues.doctor-delay');
+        Route::post('/queues/doctor-status', [QueueDeskController::class, 'doctorStatus'])
+            ->middleware('throttle:admin_write')
+            ->name('queues.doctor-status');
+
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('/notifications/{notification}', [NotificationController::class, 'show'])->name('notifications.show');
+        Route::post('/notifications/{notification}/resend', [NotificationController::class, 'resend'])
+            ->middleware('throttle:admin_write')
+            ->name('notifications.resend');
+        Route::post('/notifications/support', [NotificationController::class, 'support'])
+            ->middleware('throttle:admin_write')
+            ->name('notifications.support');
+
+        Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+
+        Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+        Route::put('/settings', [SettingsController::class, 'update'])
+            ->middleware('throttle:admin_write')
+            ->name('settings.update');
+    });
 });

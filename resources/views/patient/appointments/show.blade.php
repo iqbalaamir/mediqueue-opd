@@ -69,7 +69,7 @@
 
                 <div class="mt-6 flex flex-col gap-3 sm:flex-row">
                     <a
-                        href="{{ route('verify.index', ['appointment' => $appointment->uuid], absolute: false) }}"
+                        href="{{ route('queue.show', $appointment, absolute: false) }}"
                         class="btn-primary flex-1 text-center"
                     >
                         Track live queue

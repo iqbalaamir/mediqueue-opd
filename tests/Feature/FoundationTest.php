@@ -34,9 +34,13 @@ class FoundationTest extends TestCase
         $this->assertFalse(config('hospital.booking.otp_required'));
     }
 
-    public function test_admin_placeholder_routes_are_registered(): void
+    public function test_admin_login_page_is_public(): void
     {
-        $this->get(route('admin.dashboard', absolute: false))->assertOk();
         $this->get(route('admin.login', absolute: false))->assertOk();
+    }
+
+    public function test_admin_dashboard_requires_auth(): void
+    {
+        $this->get(route('admin.dashboard', absolute: false))->assertRedirect(route('admin.login', absolute: false));
     }
 }

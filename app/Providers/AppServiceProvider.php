@@ -41,5 +41,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('payment_demo', fn (Request $request) => Limit::perMinute(
             config('hospital.rate_limits.payment_demo')
         )->by($request->ip()));
+
+        RateLimiter::for('admin_write', fn (Request $request) => Limit::perMinute(
+            config('hospital.rate_limits.admin_write')
+        )->by($request->user()?->id ?: $request->ip()));
     }
 }
